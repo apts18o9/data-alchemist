@@ -1,13 +1,13 @@
-
+// src/components/FileUpload.tsx
 import React, { ChangeEvent, useState } from 'react';
-import { Button, Box, Typography, CircularProgress } from '@mui/material';
+import { Button, Box, Typography, CircularProgress, Alert } from '@mui/material'; // Import Alert
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { parseFile } from '../utils/fileParser'
+import { parseFile } from '../utils/fileParser';
 
 interface FileUploadProps {
   id: string;
   label: string;
-  fileType: 'clients' | 'workers' | 'tasks'; // To see which type of data is being uploaded
+  fileType: 'clients' | 'workers' | 'tasks';
   onFileUpload: (fileType: 'clients' | 'workers' | 'tasks', data: any[], fileName: string) => void;
 }
 
@@ -22,11 +22,11 @@ const FileUpload: React.FC<FileUploadProps> = ({ id, label, fileType, onFileUplo
       const file = files[0];
       setFileName(file.name);
       setLoading(true);
-      setUploadError(null);
+      setUploadError(null); // Clear previous errors
+
       try {
-        // Use the centralized parseFile utility
         const parsedData = await parseFile(file);
-        onFileUpload(fileType, parsedData, file.name); // Pass parsed data to parent
+        onFileUpload(fileType, parsedData, file.name);
       } catch (error: any) {
         console.error("File processing error:", error);
         setUploadError(error.message || `Failed to process file: ${file.name}`);
@@ -66,14 +66,15 @@ const FileUpload: React.FC<FileUploadProps> = ({ id, label, fileType, onFileUplo
         </Typography>
       )}
       {loading && (
-          <Typography variant="body2" sx={{ mt: 1, color: 'text-white' }}>
+          <Typography variant="body2" sx={{ mt: 1, color: 'text.secondary' }}>
               Parsing...
           </Typography>
       )}
       {uploadError && (
-        <Typography variant="body2" color="error" sx={{ mt: 1 }}>
-          Error: {uploadError}
-        </Typography>
+        // Changed from Typography to Alert for more prominent error display
+        <Alert severity="error" sx={{ mt: 2, textAlign: 'left' }}>
+          {uploadError}
+        </Alert>
       )}
     </Box>
   );
