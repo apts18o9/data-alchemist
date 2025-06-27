@@ -31,7 +31,7 @@ const DataTable = <T extends object>({ data, columns, title }: DataTableProps<T>
     return (
       <Box sx={{ my: 3 }}>
         <Typography variant="h6" gutterBottom>{title}</Typography>
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text-white">
           No data available for {title.toLowerCase()}. Please upload a file.
         </Typography>
       </Box>
@@ -39,7 +39,7 @@ const DataTable = <T extends object>({ data, columns, title }: DataTableProps<T>
   }
 
   return (
-    <Box sx={{ my: 3 }}>
+    <Box sx={{ my: 3 }} display={'flex'}>
       <Typography variant="h6" gutterBottom>{title}</Typography>
       <TableContainer component={Paper} sx={{ maxHeight: 440 }}>
         <Table stickyHeader aria-label={`${title} table`}>
