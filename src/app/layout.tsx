@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
-import {GeistSans} from 'geist/font/sans'
-import {GeistMono} from 'geist/font/mono'
+import { GeistSans } from 'geist/font/sans'
+import { GeistMono } from 'geist/font/mono'
 import "./globals.css";
+import { ValidationErrorsProvider } from "@/context/ValidationErrorsContext";
 
 const geistSans = GeistSans;
 const geistMono = GeistMono;
@@ -21,7 +22,10 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <ValidationErrorsProvider>
+          {children}
+        </ValidationErrorsProvider>
+
       </body>
     </html>
   );
