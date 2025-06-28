@@ -1,14 +1,15 @@
 'use client'
 import React, { useState, useCallback, useEffect } from 'react';
-import { Container, Typography, Box, Alert, Tooltip, Button } from '@mui/material'; // Added Button
+import { Container, Typography, Box, Alert, Tooltip, Button } from '@mui/material';
 import FileUpload from '../components/FileUpload';
 import { DataGrid, GridColDef, GridRowId, GridCellParams } from '@mui/x-data-grid';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
-import { useRouter } from 'next/navigation'; // Import useRouter for navigation
-import { useValidationErrors, ValidationError } from '../context/ValidationErrorsContext'; // Import context hook and interface
+import { useRouter } from 'next/navigation';
+import { useValidationErrors, ValidationError } from '../context/ValidationErrorsContext';
+import RuleInput from '../components/RuleInput'; // Import the new RuleInput component
 
 
-// Define types for your parsed data (remain as reference, ensure 'id' is part of it for DataGrid)
+// Define types for your parsed data
 interface ClientData {
   ClientID: string;
   ClientName: string;
@@ -20,7 +21,7 @@ interface ClientData {
 }
 
 interface WorkerData {
-  WorkerID: string;
+  WorkerID: string;n
   WorkerName: string;
   Skills: string;
   AvailableSlots: number;
@@ -43,7 +44,6 @@ interface TaskData {
 
 
 // --- Validation Helper Functions (Row-level) ---
-// These functions are pure and remain unchanged
 const validateClientRow = (row: ClientData, allClients: ClientData[]): ValidationError[] => {
   const errors: ValidationError[] = [];
   if (!row.ClientID) { errors.push({ id: `${row.id}-ClientID-required`, rowId: row.id, field: 'ClientID', message: 'Client ID is required.', severity: 'error', dataSetType: 'clients' }); } else if (allClients.filter(c => c.ClientID === row.ClientID).length > 1) { errors.push({ id: `${row.id}-ClientID-unique`, rowId: row.id, field: 'ClientID', message: 'Client ID must be unique.', severity: 'error', dataSetType: 'clients' }); }
@@ -87,10 +87,9 @@ export default function HomePage() {
   const [workerTableColumns, setWorkerTableColumns] = useState<GridColDef[]>([]);
   const [taskTableColumns, setTaskTableColumns] = useState<GridColDef[]>([]);
 
-  // Get validationErrors and its setter from the context
   const { validationErrors, setValidationErrors } = useValidationErrors();
   const [appError, setAppError] = useState<string | null>(null);
-  const router = useRouter(); 
+  const router = useRouter();
 
   // --- Core Validation Function (Includes Cross-Dataset Validations) ---
   const runValidations = useCallback(() => {
@@ -170,7 +169,7 @@ export default function HomePage() {
         }
         phases.forEach(phase => { phaseTaskDurations.set(phase, (phaseTaskDurations.get(phase) || 0) + duration); });
       } else {
-         allErrors.push({ id: `${task.id}-PreferredPhases-missing`, rowId: task.id, field: 'PreferredPhases', message: `Preferred Phases field is missing or empty.`, severity: 'warning', dataSetType: 'tasks' });
+         allErrors.push({ id: `${task.id}-PreferredPhases-missing`, rowId: 'N/A', field: 'PreferredPhases', message: `Preferred Phases field is missing or empty.`, severity: 'warning', dataSetType: 'tasks' });
       }
     });
 
@@ -195,15 +194,14 @@ export default function HomePage() {
       }
     });
 
-    setValidationErrors(allErrors); // Update errors in the global context
+    setValidationErrors(allErrors);
     if (allErrors.length > 0) {
       setAppError(`Found ${allErrors.length} validation errors.`);
     } else {
       setAppError(null);
     }
-  }, [clientsData, workersData, tasksData, setValidationErrors]); // setValidationErrors is now a dependency from context
+  }, [clientsData, workersData, tasksData, setValidationErrors]);
 
-  // Run validation whenever any of the data sets change
   useEffect(() => {
     runValidations();
   }, [runValidations]);
@@ -230,7 +228,6 @@ export default function HomePage() {
         minWidth: 150,
         editable: true,
         renderCell: (params: GridCellParams<any, any, any>) => {
-          // Filter errors from the global context for the specific cell
           const errorsForCell = validationErrors.filter(
             err => err.rowId === params.id && err.field === params.field && (err.dataSetType === fileType || err.dataSetType === 'cross-dataset')
           );
@@ -277,7 +274,7 @@ export default function HomePage() {
         case 'workers': setWorkersData([]); setWorkerTableColumns([]); break;
         case 'tasks': setTasksData([]); setTaskTableColumns([]); break;
       }
-      setValidationErrors([]); // Clear errors in context if file upload fails
+      setValidationErrors([]);
     }
   };
 
@@ -311,6 +308,15 @@ export default function HomePage() {
     setAppError(`Data update failed: ${error.message || 'An unknown error occurred.'}`);
   }, []);
 
+  // Placeholder for handling the rule from the RuleInput component
+  const handleAddRule = useCallback((rule: string) => {
+    console.log("New rule added (for processing later):", rule);
+    // In a real scenario, this would trigger rule parsing/conversion
+    // and storage of the structured rule.
+    setAppError(`Rule added: "${rule}". (Processing logic to be implemented later.)`);
+  }, []);
+
+
   return (
     <Container maxWidth="lg">
       <Box sx={{ my: 4, textAlign: 'center' }}>
@@ -328,7 +334,6 @@ export default function HomePage() {
       {appError && (
         <Alert severity="error" sx={{ mb: 3 }}>
           {appError}
-       
           {validationErrors.length > 0 && (
             <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
               <Typography variant="body2" sx={{ mr: 2, fontWeight: 'bold' }}>
@@ -342,7 +347,6 @@ export default function HomePage() {
         </Alert>
       )}
 
-      {/* If there's no general appError, but there are validation errors, display the count and button */}
       {!appError && validationErrors.length > 0 && (
           <Box sx={{ mt: -2, mb: 3, display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
             <Typography variant="body2" sx={{ mr: 2, fontWeight: 'bold' }}>
@@ -354,6 +358,8 @@ export default function HomePage() {
           </Box>
       )}
 
+      {/* Integrate the Rule Input UI here */}
+      <RuleInput onAddRule={handleAddRule} />
 
       <Box sx={{ display: 'flex', justifyContent: 'space-around', gap: 3, mb: 6, flexWrap: 'wrap' }}>
         <FileUpload
@@ -381,8 +387,6 @@ export default function HomePage() {
           Uploaded Data Previews (Editable & Validated)
         </Typography>
 
-        {/* The Validation Summary Panel is now moved to the /errors route */}
-
         {/* Client DataGrid */}
         <Typography variant="h6" gutterBottom sx={{ mt: 3 }}>Clients Data</Typography>
         {clientsData.length > 0 && clientTableColumns.length > 0 ? (
@@ -397,7 +401,7 @@ export default function HomePage() {
             sx={{ minHeight: 200, maxHeight: 400, width: '100%' }}
           />
         ) : (
-          <Typography variant="body2" color="text-white" sx={{ py: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
             No Clients Data available. Please upload a file.
           </Typography>
         )}
@@ -416,7 +420,7 @@ export default function HomePage() {
             sx={{ minHeight: 200, maxHeight: 400, width: '100%' }}
           />
         ) : (
-          <Typography variant="body2" color="text-white" sx={{ py: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
             No Workers Data available. Please upload a file.
           </Typography>
         )}
@@ -435,12 +439,11 @@ export default function HomePage() {
             sx={{ minHeight: 200, maxHeight: 400, width: '100%' }}
           />
         ) : (
-          <Typography variant="body2" color="text-white" sx={{ py: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
             No Tasks Data available. Please upload a file.
           </Typography>
         )}
 
-        {/* Overall 'No data uploaded yet' message */}
         {clientsData.length === 0 && workersData.length === 0 && tasksData.length === 0 && (
             <Typography variant="body1" color="text.primary" sx={{ mt: 2, color: 'white' }}>
                 No data uploaded yet. Please upload files above.
