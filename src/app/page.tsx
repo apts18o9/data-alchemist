@@ -1,15 +1,18 @@
 'use client'
 import React, { useState, useCallback, useEffect } from 'react';
-import { Container, Typography, Box, Alert, Tooltip, Button } from '@mui/material';
+import { Container, Typography, Box, Alert, Tooltip, Button, Paper, Slider } from '@mui/material';
 import FileUpload from '../components/FileUpload';
 import { DataGrid, GridColDef, GridRowId, GridCellParams } from '@mui/x-data-grid';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { useRouter } from 'next/navigation';
 import { useValidationErrors, ValidationError } from '../context/ValidationErrorsContext';
-import RuleInput from '../components/RuleInput'; // Import the new RuleInput component
+import RuleInput from '../components/RuleInput';
+import { StructuredRule, RuleCondition, RuleAction } from '../types/rules';
+import { parseNaturalLanguageRule } from '../utils/ruleParser';
+import { convertToCsv } from '../utils/csvConverter'; // NEW: Import the CSV converter utility
 
 
-// Define types for your parsed data
+// Define types for your parsed data (remain as reference, ensure 'id' is part of it for DataGrid)
 interface ClientData {
   ClientID: string;
   ClientName: string;
@@ -21,7 +24,7 @@ interface ClientData {
 }
 
 interface WorkerData {
-  WorkerID: string;n
+  WorkerID: string;
   WorkerName: string;
   Skills: string;
   AvailableSlots: number;
@@ -90,6 +93,18 @@ export default function HomePage() {
   const { validationErrors, setValidationErrors } = useValidationErrors();
   const [appError, setAppError] = useState<string | null>(null);
   const router = useRouter();
+
+  // State for defined rules (from previous step)
+  const [definedRules, setDefinedRules] = useState<StructuredRule[]>([]);
+
+  // State for Prioritization Weights (from previous step)
+  const [priorityWeights, setPriorityWeights] = useState({
+    clientPriorityFulfillment: 50,
+    workerSkillMatch: 50,
+    taskCompletionEfficiency: 50,
+    // Add more criteria as needed with default values
+  });
+
 
   // --- Core Validation Function (Includes Cross-Dataset Validations) ---
   const runValidations = useCallback(() => {
@@ -308,13 +323,92 @@ export default function HomePage() {
     setAppError(`Data update failed: ${error.message || 'An unknown error occurred.'}`);
   }, []);
 
-  // Placeholder for handling the rule from the RuleInput component
-  const handleAddRule = useCallback((rule: string) => {
-    console.log("New rule added (for processing later):", rule);
-    // In a real scenario, this would trigger rule parsing/conversion
-    // and storage of the structured rule.
-    setAppError(`Rule added: "${rule}". (Processing logic to be implemented later.)`);
+  const handleAddRule = useCallback((ruleText: string) => {
+    setAppError(null);
+    const parsedRule = parseNaturalLanguageRule(ruleText);
+
+    if (parsedRule.parsedSuccessfully) {
+      setDefinedRules((prevRules) => [...prevRules, parsedRule]);
+      setAppError(`Successfully parsed and added rule: "${ruleText}".`);
+    } else {
+      setAppError(`Failed to parse rule: "${ruleText}". Error: ${parsedRule.parseError || 'Unknown parsing error. Please try a different phrasing.'}`);
+    }
   }, []);
+
+  const generateAndDownloadRulesConfig = useCallback(() => {
+    const rulesConfig = {
+      rules: definedRules,
+      prioritizationWeights: priorityWeights,
+    };
+
+    const jsonString = JSON.stringify(rulesConfig, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'rules_config.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    setAppError("Rules configuration downloaded as 'rules_config.json'.");
+  }, [definedRules, priorityWeights]);
+
+  // NEW FUNCTION: To handle export of all current data as CSV files
+  const handleExportAllData = useCallback(() => {
+    setAppError(null); // Clear previous errors
+
+    if (clientsData.length > 0) {
+      const csvContent = convertToCsv(clientsData);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'clients_data.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } else {
+      setAppError("No client data to export.");
+    }
+
+    if (workersData.length > 0) {
+      const csvContent = convertToCsv(workersData);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'workers_data.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } else {
+      setAppError(prev => (prev ? prev + " No worker data to export." : "No worker data to export."));
+    }
+
+    if (tasksData.length > 0) {
+      const csvContent = convertToCsv(tasksData);
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'tasks_data.csv';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } else {
+      setAppError(prev => (prev ? prev + " No task data to export." : "No task data to export."));
+    }
+
+    if (clientsData.length > 0 || workersData.length > 0 || tasksData.length > 0) {
+        setAppError(prev => (prev ? prev : "All available data exported as CSV files."));
+    }
+  }, [clientsData, workersData, tasksData]);
 
 
   return (
@@ -358,8 +452,107 @@ export default function HomePage() {
           </Box>
       )}
 
-      {/* Integrate the Rule Input UI here */}
+      {/* Rule Input Section */}
       <RuleInput onAddRule={handleAddRule} />
+
+      {/* Section to Display Defined Rules */}
+      <Box sx={{ mt: 4, mb: 4 }}>
+        <Typography variant="h5" gutterBottom>
+          Defined Business Rules ({definedRules.length})
+        </Typography>
+        {definedRules.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">
+            No rules defined yet. Add a rule using the input above.
+          </Typography>
+        ) : (
+          <Paper elevation={2} sx={{ p: 2, maxHeight: 300, overflowY: 'auto' }}>
+            {definedRules.map((rule) => (
+              <Box key={rule.id} sx={{ mb: 2, p: 1.5, border: '1px solid #555', borderRadius: '4px', backgroundColor: '#333' }}>
+                <Typography variant="body1" fontWeight="bold">
+                  Original Rule: "{rule.originalText}"
+                </Typography>
+                {rule.parsedSuccessfully ? (
+                  <Box sx={{ mt: 1 }}>
+                    {rule.conditions.length > 0 && (
+                      <>
+                        <Typography variant="body2" color="text.secondary">
+                          Parsed Conditions:
+                        </Typography>
+                        <ul style={{ margin: '0', paddingLeft: '20px' }}>
+                          {rule.conditions.map((cond, idx) => (
+                            <li key={idx}>
+                              {cond.dataSet} {cond.field && `[${cond.field}]`} {cond.operator} {JSON.stringify(cond.value)}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                    {rule.actions.length > 0 && (
+                      <>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                          Parsed Actions:
+                        </Typography>
+                        <ul style={{ margin: '0', paddingLeft: '20px' }}>
+                          {rule.actions.map((act, idx) => (
+                            <li key={idx}>
+                              {act.type === 'assignmentPreference' && `Assignment Preference: Target ${act.preferenceTarget || 'N/A'}, Field: ${act.field || 'N/A'}, Value: ${JSON.stringify(act.value)}`}
+                              {act.type === 'flag' && `Flag: ${act.message}`}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </Box>
+                ) : (
+                  <Typography variant="body2" color="error" sx={{ mt: 1 }}>
+                    Parsing Error: {rule.parseError}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+          </Paper>
+        )}
+        {definedRules.length > 0 && (
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={generateAndDownloadRulesConfig}
+            sx={{ mt: 2 }}
+          >
+            Generate & Download Rules Config (rules_config.json)
+          </Button>
+        )}
+      </Box>
+
+      {/* Prioritization & Weights Interface */}
+      <Paper elevation={3} sx={{ p: 3, mb: 4, mt: 4 }}>
+        <Typography variant="h5" component="h3" gutterBottom>
+          Prioritization & Weights
+        </Typography>
+        <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+          Adjust the sliders to set the relative importance of different allocation criteria (0-100%).
+        </Typography>
+
+        {Object.entries(priorityWeights).map(([key, value]) => (
+          <Box key={key} sx={{ mb: 3 }}>
+            <Typography gutterBottom>
+              {key.replace(/([A-Z])/g, ' $1').replace(/^./, (str) => str.toUpperCase())}
+            </Typography>
+            <Slider
+              value={value}
+              onChange={(_, newValue) => setPriorityWeights(prev => ({ ...prev, [key]: newValue as number }))}
+              aria-labelledby={`${key}-slider`}
+              valueLabelDisplay="auto"
+              min={0}
+              max={100}
+            />
+            <Typography variant="body2" color="text.secondary" align="right">
+              {value}%
+            </Typography>
+          </Box>
+        ))}
+      </Paper>
+
 
       <Box sx={{ display: 'flex', justifyContent: 'space-around', gap: 3, mb: 6, flexWrap: 'wrap' }}>
         <FileUpload
@@ -381,6 +574,18 @@ export default function HomePage() {
           onFileUpload={handleFileUpload}
         />
       </Box>
+
+      {/* NEW BUTTON: Export All Data as CSV */}
+      {(clientsData.length > 0 || workersData.length > 0 || tasksData.length > 0) && (
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleExportAllData}
+          sx={{ mb: 4, width: 'fit-content', mx: 'auto', display: 'block' }}
+        >
+          Export All Data as CSV
+        </Button>
+      )}
 
       <Box sx={{ mt: 4, width: '100%' }}>
         <Typography variant="h4" gutterBottom>
