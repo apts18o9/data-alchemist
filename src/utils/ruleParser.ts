@@ -1,5 +1,5 @@
 // src/utils/ruleParser.ts
-import { StructuredRule, RuleCondition, RuleAction } from '../types/rules';
+import { StructuredRule } from '../types/rules';
 import { v4 as uuidv4 } from 'uuid'; // For generating unique IDs
 
 export function parseNaturalLanguageRule(ruleText: string): StructuredRule {
