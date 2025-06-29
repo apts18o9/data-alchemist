@@ -606,7 +606,7 @@ export default function HomePage() {
             sx={{ minHeight: 200, maxHeight: 400, width: '100%' }}
           />
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+          <Typography variant="body2" color="text-white" sx={{ py: 2 }}>
             No Clients Data available. Please upload a file.
           </Typography>
         )}
@@ -625,7 +625,7 @@ export default function HomePage() {
             sx={{ minHeight: 200, maxHeight: 400, width: '100%' }}
           />
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+          <Typography variant="body2" color="text-white" sx={{ py: 2 }}>
             No Workers Data available. Please upload a file.
           </Typography>
         )}
@@ -644,7 +644,7 @@ export default function HomePage() {
             sx={{ minHeight: 200, maxHeight: 400, width: '100%' }}
           />
         ) : (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+          <Typography variant="body2" color="text-white" sx={{ py: 2 }}>
             No Tasks Data available. Please upload a file.
           </Typography>
         )}
