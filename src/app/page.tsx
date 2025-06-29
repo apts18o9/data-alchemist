@@ -415,11 +415,9 @@ export default function HomePage() {
     <Container maxWidth="lg">
       <Box sx={{ my: 4, textAlign: 'center' }}>
         <Typography variant="h3" component="h1" gutterBottom>
-          Data Alchemist: Resource-Allocation Configurator
+          Data Alchemist
         </Typography>
-        <Typography variant="h5" component="h2" gutterBottom>
-          Forge Your Own AI
-        </Typography>
+        
         <Typography variant="body1" sx={{ mb: 4 }}>
           Upload your client, worker, and task data to bring order out of spreadsheet chaos.
         </Typography>
